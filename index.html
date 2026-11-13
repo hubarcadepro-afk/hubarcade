@@ -695,9 +695,12 @@ async function rpc(fn, args = {}){
 
 /* ====================== État ====================== */
 const CLE_TOKEN = "token-" + CSE_SLUG, CLE_ATTENTE = "attente-" + CSE_SLUG;
+let infosCse = null; /* { nom, demo, logo } : visibles avant connexion */
+const estDemo = () => !!(infosCse && infosCse.demo);
 const state = { token: store.get(CLE_TOKEN, null), data: null, jour: 0, profil: null, joues: {}, chargeLe: 0 };
 const jeuDu = n => { const c = state.data && state.data.calendrier.find(x => x.jour === n); return c ? c.jeu : null; };
 const nomJeu = g => g ? JEUX[g - 1] : "";
+const avecTirage = n => { const c = state.data && state.data.calendrier.find(x => x.jour === n); return !c || c.tirage !== false; };
 
 function appliquer(d){
   state.data = d; state.jour = d.jour; state.chargeLe = Date.now();
@@ -2350,8 +2353,12 @@ function initiales(nom){
 }
 function header(){
   const d = state.data;
-  $("#logoMark").textContent = d ? initiales(d.cse.nom) : "CSE";
-  $("#logoTxt").innerHTML = d ? `${esc(d.cse.nom)}<small>Calendrier de l’avent</small>` : `Calendrier de l’avent<small>de ton CSE</small>`;
+  if (d && d.cse.logo) $("#logoMark").innerHTML = `<img src="${esc(d.cse.logo)}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:inherit">`;
+  else $("#logoMark").textContent = d ? initiales(d.cse.nom) : "CSE";
+  const nomAff = d ? d.cse.nom : infosCse && infosCse.nom;
+  if (!d && infosCse && infosCse.logo) $("#logoMark").innerHTML = `<img src="${esc(infosCse.logo)}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:inherit">`;
+  else if (!d && nomAff) $("#logoMark").textContent = initiales(nomAff);
+  $("#logoTxt").innerHTML = nomAff ? `${esc(nomAff)}<small>Calendrier de l’avent</small>` : `Calendrier de l’avent<small>de ton CSE</small>`;
   const chip = $("#meChip");
   if (!d || !state.profil || !state.profil.av){ chip.hidden = true; chip.style.display = "none"; return; }
   const { rang } = monRang();
@@ -2396,8 +2403,8 @@ function vueAccueil(){
   const pied = state.jour === 0 ? "Ouverture le 1er décembre"
     : state.jour > 24 ? "Merci d’avoir joué, à l’année prochaine !"
     : dejaJoue ? "Reviens demain pour la suite" : "Trouve la case du jour !";
-  const sousTirage = t
-    ? (gagneMoi ? "Ouvre vite, il y a une surprise…" : t.jour === 24 ? "Le résultat de ce soir t’attend" : "Le dernier résultat t’attend")
+  const sousTirage = (state.data.en_attente || []).some(d => !t || d > t.jour) ? "Résultats bientôt disponibles"
+    : t ? (gagneMoi ? "Ouvre vite, il y a une surprise…" : t.jour === 24 ? "Le résultat de ce soir t’attend" : "Le dernier résultat t’attend")
     : (state.jour <= 1 ? "Premier tirage le 2 décembre à 00h01" : "Le prochain tirage arrive bientôt");
 
   app.innerHTML = `
@@ -2427,7 +2434,7 @@ function vueAccueil(){
     </a>
 
     <a class="panel rules-link" href="#reglement"><b>Le règlement du calendrier</b><svg viewBox="0 0 48 48" width="26" height="26" aria-hidden="true">${ICONES.ticket}</svg></a>
-    ${state.data.moi.admin ? `<a class="panel rules-link" href="#admin"><b>Console du CSE</b><span aria-hidden="true" style="font-weight:800">›</span></a>` : ""}
+    ${state.data.moi.admin ? `<a class="panel rules-link" href="admin.html?cse=${encodeURIComponent(CSE_SLUG)}" target="_top"><b>Console du CSE</b><span aria-hidden="true" style="font-weight:800">›</span></a>` : ""}
   `;
 
   app.querySelectorAll(".door-slot").forEach(slot => slot.addEventListener("click", () => {
@@ -2466,8 +2473,10 @@ function vueConnexion(){
       <input class="input" id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" placeholder="••••">
       <p id="err" role="alert" style="color:var(--red-deep);font-weight:700;min-height:1.3em;margin:12px 0 4px"></p>
       <button class="btn block" id="ok">Entrer dans le calendrier</button>
-    </div>`;
+    </div>
+    ${estDemo() ? `<div class="panel" style="text-align:center"><b>Accès de démonstration</b><p style="margin:6px 0 12px">E-mail : <b>demo@exemple.fr</b> · code : <b>1234</b></p><button class="btn ghost block" id="remplir">Remplir pour moi</button></div>` : ""}`;
   const err = $("#err"), btn = $("#ok");
+  if (estDemo()) $("#remplir").onclick = () => { $("#em").value = "demo@exemple.fr"; $("#pin").value = "1234"; btn.focus(); };
   const envoyer = async () => {
     const email = $("#em").value.trim(), pin = $("#pin").value.trim();
     if (!email){ err.textContent = "Indique ton adresse e-mail."; $("#em").focus(); return; }
@@ -2556,6 +2565,12 @@ function vueReglement(){
 
 function vueTirage(){
   const ts = state.data.tirages, t = ts[0];
+  const attente = (state.data.en_attente || []).filter(d => !t || d > t.jour);
+  const blocAttente = attente.length ? `<div class="panel"><span class="tape l"></span><h2>Résultats bientôt disponibles</h2><p>Le tirage de la case ${attente[0]} a eu lieu. Le CSE publiera les gagnants très vite, reviens un peu plus tard !</p></div>` : "";
+  if (!t && attente.length){
+    app.innerHTML = `<a class="back" href="#accueil">‹ Calendrier</a><h1 class="page-title">Tirage du jour</h1>` + blocAttente;
+    return;
+  }
   if (!t){
     app.innerHTML = `<a class="back" href="#accueil">‹ Calendrier</a><h1 class="page-title">Tirage du jour</h1>
       <div class="panel"><span class="tape l"></span><h2>${state.jour <= 1 ? "Premier tirage le 2 décembre" : "Le tirage arrive"}</h2>
@@ -2566,7 +2581,7 @@ function vueTirage(){
   const quand = t.jour === 24 ? "le 24 décembre à 17h01" : `le ${t.jour + 1} décembre à 00h01`;
   const precedents = ts.slice(1).map(p => `<li><span class="k">${p.jour}</span><span class="t"><b>${p.gagnants.length ? esc(p.gagnants.map(x => x.nom).join(", ")) : "Pas de gagnant"}</b><br><span class="muted">${esc(nomJeu(p.jeu))}${p.gagnants.some(x => x.lot) ? " · " + esc(p.gagnants.map(x => x.lot).filter(Boolean).join(", ")) : ""}</span></span></li>`);
   const blocPrec = precedents.length ? `<div class="panel"><h2>Tirages précédents</h2><ul class="lots">${precedents.join("")}</ul></div>` : "";
-  const titre = `<a class="back" href="#accueil">‹ Calendrier</a><h1 class="page-title">Tirage de la case ${t.jour}</h1>`;
+  const titre = `<a class="back" href="#accueil">‹ Calendrier</a><h1 class="page-title">Tirage de la case ${t.jour}</h1>` + blocAttente;
 
   if (!t.gagnants.length){
     app.innerHTML = titre + `<div class="panel"><span class="tape l"></span><h2>Pas de gagnant pour cette case</h2>
@@ -2628,7 +2643,7 @@ function vueJeu(n){
   }
   const G = GAMES[g];
   app.innerHTML = titre + `
-    <div class="objectif"><span class="ic">${ico("ticket")}</span><div><small>Pour participer au tirage</small><b>${esc(OBJECTIFS[g])}</b></div></div>
+    <div class="objectif"><span class="ic">${ico("ticket")}</span><div><small>${avecTirage(n) ? "Pour participer au tirage" : "Pas de tirage aujourd’hui : objectif pour le plaisir et le classement"}</small><b>${esc(OBJECTIFS[g])}</b></div></div>
     <div class="panel tilt-l"><span class="tape l"></span><span class="tape r"></span>
       <h2>Comment jouer</h2>
       <div class="steps">${G.steps.map(([i, t]) => `<div class="step"><div class="ic">${ico(i)}</div><b>${esc(t)}</b></div>`).join("")}</div>
@@ -2666,6 +2681,7 @@ function confirmer(n){
     <p>Le jeu démarre dès que tu confirmes. Si tu quittes la page pendant la partie, ton essai est perdu.</p>
     <div class="row"><button class="btn ghost" id="no">Plus tard</button><button class="btn" id="yes">C’est parti</button></div></div>`;
   bg.querySelector("svg").setAttribute("style", "width:52px;height:52px");
+  cadrer();
   document.body.appendChild(bg);
   const close = () => bg.remove();
   $("#no", bg).onclick = close; bg.onclick = e => { if (e.target === bg) close(); };
@@ -2688,6 +2704,7 @@ async function lancerPartie(n){
   if (d.erreur){
     try { await rafraichir(); } catch {}
     if (d.erreur === "deja_joue" && state.joues[n]) return vueResultat(n);
+    if (d.erreur === "deja_joue"){ go("jeu-" + n); return; }
     toast("Cette case est fermée."); go("accueil"); return;
   }
   if (!$("#zone")) return;
@@ -2734,16 +2751,17 @@ function vueResultat(n, frais = false){
     : j.abandon
     ? `<span class="badge ko">Partie interrompue</span><p style="margin-top:12px">Tu as quitté la page pendant ta partie : ton essai du jour est utilisé.</p>`
     : j.ok
-      ? `<span class="badge ok">Qualifié pour le tirage</span>${j.stat ? `<div class="big">${esc(j.stat)}</div>` : ""}
+      ? `<span class="badge ok">${avecTirage(n) ? "Qualifié pour le tirage" : "Objectif atteint"}</span>${j.stat ? `<div class="big">${esc(j.stat)}</div>` : ""}
          <p>${j.pts} points gagnés.${rang ? ` Tu es <b>${rang}e sur ${total}</b> au classement général.` : ""}</p>
-         <p class="muted">Tirage ${n === 24 ? "ce soir à 17h01" : "demain à 00h01"}. Bonne chance !</p>`
+         <p class="muted">${avecTirage(n) ? `Tirage ${n === 24 ? "ce soir à 17h01" : "demain à 00h01"}. Bonne chance !` : "Pas de tirage pour cette case : bravo quand même !"}</p>`
       : `<span class="badge ko">Pas qualifié cette fois</span>${j.stat ? `<div class="big" style="font-size:30px">${esc(j.stat)}</div>` : ""}
          <p>${j.pts} points quand même. Une nouvelle case t’attend demain !</p>`;
   app.innerHTML = titreJeu(n, g) + `<div class="panel result"><span class="tape l"></span><span class="tape r"></span>
     ${frais && j.ok ? `<div class="arcade" style="color:var(--red);text-shadow:2px 2px 0 var(--gold);font-size:30px">Bravo !</div>` : `<h2>Ton résultat</h2>`}
     ${corps}
     ${g && OBJECTIFS[g] ? `<p class="muted" style="margin-top:10px">Objectif du jour : ${esc(OBJECTIFS[g])}</p>` : ""}
-    <div style="display:grid;gap:10px;margin-top:16px"><a class="btn block" href="#accueil">Retour au calendrier</a><a class="btn ghost block" href="#classement">Voir le classement</a></div></div>`;
+    <div style="display:grid;gap:10px;margin-top:16px">${estDemo() && n === state.jour ? `<button class="btn gold block" id="rejouer">Rejouer cette case (démo)</button>` : ""}<a class="btn block" href="#accueil">Retour au calendrier</a><a class="btn ghost block" href="#classement">Voir le classement</a></div></div>`;
+  const rj = $("#rejouer"); if (rj) rj.onclick = () => { delete state.joues[n]; vueJeu(n); window.scrollTo(0, 0); };
   if (frais) window.scrollTo(0, 0);
   if (frais && j.ok) confetti(90);
 }
@@ -2768,210 +2786,10 @@ function confetti(nb = 180){
   })(t0);
 }
 
-/* ====================== Console du CSE (réservée aux admins) ====================== */
-let adminData = null;
-const MSG_ADMIN = {
-  soi_meme: "Tu ne peux pas faire ça sur ton propre compte.",
-  deja_gagne: "Ce lot a déjà été gagné, il ne peut plus être modifié.",
-  libelle_vide: "Indique le nom du lot.", jour_invalide: "Le jour doit être entre 1 et 24.",
-  nom_vide: "Indique le nom du CSE.", nb_gagnants: "Le nombre de gagnants doit être entre 1 et 20.",
-  inconnu: "Personne introuvable.",
-};
-const pl = (n, mot) => `${n} ${mot}${n > 1 ? "s" : ""}`;
-async function chargerAdmin(){ adminData = await rpc("admin_etat", { p_token: state.token }); }
-async function actionAdmin(fn, args, okMsg){
-  try {
-    const r = await rpc(fn, Object.assign({ p_token: state.token }, args));
-    if (r && r.erreur){ toast(MSG_ADMIN[r.erreur] || "Action impossible."); return false; }
-    await chargerAdmin();
-    if (okMsg) toast(okMsg);
-    return r || true;
-  } catch (e){
-    if (e.session){ sessionExpiree(); return false; }
-    toast("Action impossible pour le moment, réessaie."); return false;
-  }
-}
-
-async function vueAdmin(){
-  if (!state.data.moi.admin){ go("accueil"); return; }
-  app.innerHTML = `<div class="panel" style="text-align:center"><p>Chargement de la console…</p></div>`;
-  try { await chargerAdmin(); }
-  catch (e){
-    if (e.session) return sessionExpiree();
-    app.innerHTML = `<a class="back" href="#accueil">‹ Calendrier</a><div class="panel"><h2>Console indisponible</h2><p>${/acces_refuse/.test(e.message) ? "Ton compte n’est pas administrateur." : "Vérifie ta connexion internet et réessaie."}</p></div>`;
-    return;
-  }
-  rendreAdmin("participants");
-}
-
-function rendreAdmin(onglet){
-  const d = adminData;
-  const tabs = [["participants", "Participants"], ["lots", "Lots"], ["suivi", "Suivi"], ["reglages", "Réglages"]];
-  app.innerHTML = `<a class="back" href="#accueil">‹ Calendrier</a><h1 class="page-title">Console du CSE</h1>
-    ${d.cse.actif ? "" : `<div class="panel adm-alerte"><b>Calendrier fermé aux participants.</b> Seuls les admins peuvent se connecter pour l’instant. Tu l’ouvriras dans l’onglet Réglages.</div>`}
-    <div class="tabs adm-tabs" role="tablist">${tabs.map(([k, l]) => `<button class="tab" role="tab" aria-selected="${k === onglet}" data-t="${k}">${l}</button>`).join("")}</div>
-    <div id="adm"></div>`;
-  app.querySelectorAll(".tab").forEach(b => b.onclick = () => rendreAdmin(b.dataset.t));
-  ({ participants: admParticipants, lots: admLots, suivi: admSuivi, reglages: admReglages })[onglet]($("#adm"));
-}
-
-/* Lignes collées depuis Excel : l’e-mail est repéré par son @, puis prénom, puis nom. */
-function lireLignes(txt){
-  return txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
-    const cols = l.split(/\t|;|,/).map(c => c.trim()).filter(Boolean);
-    const email = cols.find(c => c.includes("@"));
-    if (!email) return null;
-    const autres = cols.filter(c => c !== email);
-    return { email, prenom: autres[0] || "", nom: autres.slice(1).join(" ") };
-  }).filter(Boolean);
-}
-
-function admParticipants(el){
-  const s = adminData.salaries, presents = s.filter(x => x.statut !== "retire");
-  const lib = { actif: "Code choisi", jamais: "Jamais connecté", bloque: "Bloqué (trop de codes faux)", retire: "Retiré" };
-  el.innerHTML = `
-    <div class="panel"><h2>Ajouter des participants</h2>
-      <p class="muted">Colle une ligne par personne, par exemple depuis Excel : e-mail, prénom et nom. Toute adresse convient, professionnelle ou personnelle : aucun e-mail n’est envoyé, l’adresse sert seulement d’identifiant.</p>
-      <textarea class="input adm-zone" id="imp" rows="5" placeholder="julie.roux@exemple.fr    Julie    Roux"></textarea>
-      <p class="muted" id="impInfo" style="min-height:1.2em;margin:6px 0"></p>
-      <button class="btn block" id="impOk">Ajouter à la liste</button></div>
-    <div class="panel"><h2>Liste d’accès</h2>
-      <p class="muted">${pl(presents.length, "personne")}, dont ${presents.filter(x => x.statut === "actif").length} déjà connectée${presents.filter(x => x.statut === "actif").length > 1 ? "s" : ""}.</p>
-      <input class="input" id="filtre" placeholder="Rechercher un nom ou un e-mail">
-      <ul class="adm-liste" id="liste"></ul></div>`;
-  $("#imp").oninput = () => { const n = lireLignes($("#imp").value).length; $("#impInfo").textContent = n ? `${pl(n, "personne")} détectée${n > 1 ? "s" : ""}.` : ""; };
-  $("#impOk").onclick = async () => {
-    const lignes = lireLignes($("#imp").value);
-    if (!lignes.length){ toast("Aucune adresse e-mail détectée."); return; }
-    $("#impOk").disabled = true;
-    const r = await actionAdmin("admin_ajouter_salaries", { p_lignes: lignes });
-    if (!r){ $("#impOk").disabled = false; return; }
-    rendreAdmin("participants");
-    toast(`${pl(r.ajoutes, "ajout")}, ${r.mis_a_jour} mise${r.mis_a_jour > 1 ? "s" : ""} à jour${r.invalides.length ? `, ${pl(r.invalides.length, "ligne")} ignorée${r.invalides.length > 1 ? "s" : ""} (prénom ou e-mail manquant)` : ""}.`);
-  };
-  const dessiner = () => {
-    const f = $("#filtre").value.trim().toLowerCase();
-    const vus = s.filter(x => !f || `${x.email} ${x.prenom} ${x.nom}`.toLowerCase().includes(f));
-    $("#liste").innerHTML = vus.map(x => `
-      <li class="${x.statut === "retire" ? "off" : ""}">
-        <div class="qui"><b>${esc(x.prenom)} ${esc(x.nom)}${x.admin ? ` <span class="adm-tag">admin</span>` : ""}${x.moi ? " (toi)" : ""}</b>
-          <span class="muted">${esc(x.email)}</span>
-          <span class="adm-statut s-${x.statut}">${lib[x.statut]}${x.parties ? ` · ${pl(x.parties, "partie")}` : ""}</span></div>
-        <div class="act">${x.statut === "retire"
-          ? `<button data-a="reintegrer" data-id="${x.id}">Réintégrer</button>`
-          : `${x.statut !== "jamais" ? `<button data-a="reinitialiser" data-id="${x.id}">Réinitialiser le code</button>` : ""}
-             ${x.moi ? "" : `<button data-a="${x.admin ? "admin_non" : "admin_oui"}" data-id="${x.id}">${x.admin ? "Retirer l’accès admin" : "Rendre admin"}</button>
-             <button data-a="retirer" data-id="${x.id}">Retirer</button>`}`}</div>
-      </li>`).join("") || `<li class="muted">Aucun résultat.</li>`;
-    $("#liste").querySelectorAll("button[data-a]").forEach(b => b.onclick = async () => {
-      const x = s.find(y => y.id === b.dataset.id), a = b.dataset.a;
-      const question = {
-        reinitialiser: `Réinitialiser le code de ${x.prenom} ${x.nom} ? Il choisira un nouveau code à sa prochaine connexion.`,
-        retirer: `Retirer ${x.prenom} ${x.nom} de la liste ? Il ne pourra plus se connecter ni gagner, son historique est conservé.`,
-        admin_oui: `Donner l’accès à cette console à ${x.prenom} ${x.nom} ?`,
-      }[a];
-      if (question && !confirm(question)) return;
-      const ok = await actionAdmin("admin_salarie", { p_id: x.id, p_action: a }, {
-        reinitialiser: "Code réinitialisé.", retirer: "Accès retiré.", reintegrer: "Accès rétabli.",
-        admin_oui: "Accès admin donné.", admin_non: "Accès admin retiré." }[a]);
-      if (ok) rendreAdmin("participants");
-    });
-  };
-  $("#filtre").oninput = dessiner; dessiner();
-}
-
-function admLots(el){
-  const d = adminData, parJour = d.cse.mode_lots === "par_jour";
-  const dispo = d.lots.filter(l => !l.gagnant);
-  const faits = new Set(d.jours.filter(j => j.tirage).map(j => j.jour));
-  let alerte = "";
-  if (parJour){
-    const sansLot = Array.from({ length: 24 }, (_, i) => i + 1).filter(j => !faits.has(j) && !dispo.some(l => l.jour === j));
-    if (sansLot.length) alerte = `Aucun lot n’est prévu pour ${sansLot.length > 6 ? pl(sansLot.length, "case") : "les cases " + sansLot.join(", ")}. Sans lot, le tirage de ces cases n’aura pas de gagnant.`;
-  } else {
-    const besoin = (24 - faits.size) * d.cse.nb_gagnants;
-    if (dispo.length < besoin) alerte = `Il reste ${pl(dispo.length, "lot")} pour ${besoin} gagnant${besoin > 1 ? "s" : ""} à venir. Sans lot, un tirage n’a pas de gagnant.`;
-  }
-  const optJours = sel => Array.from({ length: 24 }, (_, i) => `<option value="${i + 1}" ${sel === i + 1 ? "selected" : ""}>Case du ${i + 1} décembre</option>`).join("");
-  el.innerHTML = `
-    ${alerte ? `<div class="panel adm-alerte">${alerte}</div>` : ""}
-    <div class="panel"><h2>Ajouter un lot</h2>
-      <input class="input" id="lotLib" placeholder="Ex. : 2 places de cinéma">
-      ${parJour ? `<div style="height:10px"></div><select class="input" id="lotJour" aria-label="Case du jour">${optJours(0)}</select>` : ""}
-      <div style="height:10px"></div><button class="btn block" id="lotOk">Ajouter</button></div>
-    <div class="panel"><h2>Les lots</h2>
-      <p class="muted">${parJour ? "Chaque lot est mis en jeu le jour indiqué." : "Chaque gagnant reçoit un lot tiré au hasard parmi ceux qui restent."} Un lot gagné ne peut plus être modifié.</p>
-      <ul class="adm-liste">${d.lots.map(l => `<li class="${l.gagnant ? "off" : ""}">
-        <div class="qui"><b>${esc(l.libelle)}</b>
-          ${parJour ? `<span class="muted">${l.jour ? `Case du ${l.jour} décembre` : "Sans jour : ne sera pas mis en jeu"}</span>` : ""}
-          ${l.gagnant ? `<span class="adm-statut s-actif">Gagné par ${esc(l.gagnant)} (case ${l.gagne_jour})</span>` : ""}</div>
-        <div class="act">${l.gagnant ? "" : `<button data-e="${l.id}">Modifier</button><button data-s="${l.id}">Supprimer</button>`}</div></li>`).join("") || `<li class="muted">Aucun lot pour l’instant.</li>`}</ul></div>`;
-  $("#lotOk").onclick = async () => {
-    const lib = $("#lotLib").value.trim(); if (!lib){ toast("Indique le nom du lot."); return; }
-    const ok = await actionAdmin("admin_lot", { p_id: null, p_libelle: lib, p_ordre: null, p_jour: parJour ? +$("#lotJour").value : null, p_supprimer: false }, "Lot ajouté.");
-    if (ok) rendreAdmin("lots");
-  };
-  el.querySelectorAll("button[data-e]").forEach(b => b.onclick = async () => {
-    const l = d.lots.find(x => x.id === b.dataset.e);
-    const lib = prompt("Nom du lot", l.libelle); if (lib == null) return;
-    let jour = l.jour;
-    if (parJour){ const r = prompt("Case du jour (1 à 24)", l.jour || ""); if (r == null) return; jour = parseInt(r, 10) || null; }
-    const ok = await actionAdmin("admin_lot", { p_id: l.id, p_libelle: lib, p_ordre: l.ordre, p_jour: jour, p_supprimer: false }, "Lot modifié.");
-    if (ok) rendreAdmin("lots");
-  });
-  el.querySelectorAll("button[data-s]").forEach(b => b.onclick = async () => {
-    const l = d.lots.find(x => x.id === b.dataset.s);
-    if (!confirm(`Supprimer le lot « ${l.libelle} » ?`)) return;
-    const ok = await actionAdmin("admin_lot", { p_id: l.id, p_libelle: null, p_ordre: null, p_jour: null, p_supprimer: true }, "Lot supprimé.");
-    if (ok) rendreAdmin("lots");
-  });
-}
-
-function admSuivi(el){
-  const jours = adminData.jours.slice().reverse(), auj = adminData.cse.jour;
-  el.innerHTML = `<div class="panel"><h2>Jour par jour</h2>
-    ${jours.length ? `<p class="muted">Les gagnants apparaissent ici avec leur adresse e-mail, pour la remise des lots.</p><ul class="adm-liste">${jours.map(x => `<li>
-      <div class="qui"><b>Case ${x.jour} · ${esc(nomJeu(x.jeu))}</b>
-        <span class="muted">${pl(x.joueurs, "joueur")}, ${pl(x.qualifies, "qualifié")}${x.signales ? ` · ${pl(x.signales, "partie")} signalée${x.signales > 1 ? "s" : ""} (sortie de page ou durée anormale)` : ""}</span>
-        ${x.tirage
-          ? (x.tirage.gagnants.length
-              ? x.tirage.gagnants.map(g => `<span class="adm-statut s-actif">Gagnant : ${esc(g.nom)} · ${esc(g.email)}${g.lot ? ` · ${esc(g.lot)}` : ""}</span>`).join("")
-              : `<span class="adm-statut">Tirage fait, sans gagnant${x.tirage.nb_qualifies ? " (plus de lot disponible)" : " (aucun qualifié)"}</span>`)
-            + `<span class="muted">Code de vérification : ${esc(x.tirage.code)}</span>`
-          : `<span class="muted">${x.jour === auj ? "Case en cours aujourd’hui" : "Tirage en attente"}</span>`}</div></li>`).join("")}</ul>`
-      : `<p>Le calendrier n’a pas encore commencé : le suivi apparaîtra à partir du 1er décembre.</p>`}</div>`;
-}
-
-function admReglages(el){
-  const c = adminData.cse;
-  const lien = location.origin + location.pathname + "?cse=" + c.slug;
-  el.innerHTML = `
-    <div class="panel"><h2>Lien à partager</h2>
-      <p class="muted">Donne ce lien aux participants. Ils se connectent avec l’adresse e-mail inscrite dans la liste d’accès.</p>
-      <input class="input" id="lien" readonly value="${esc(lien)}">
-      <div style="height:10px"></div><button class="btn ghost block" id="copier">Copier le lien</button></div>
-    <div class="panel"><h2>Réglages</h2>
-      <label class="field" for="rNom">Nom affiché</label><input class="input" id="rNom" value="${esc(c.nom)}">
-      <label class="field" for="rNb" style="margin-top:14px">Gagnants par tirage</label>
-      <input class="input" id="rNb" type="number" min="1" max="20" inputmode="numeric" value="${c.nb_gagnants}">
-      <p class="muted" style="margin:6px 0 0">Un changement s’applique seulement aux tirages suivants.</p>
-      <label class="field" for="rMode" style="margin-top:14px">Attribution des lots</label>
-      <select class="input" id="rMode">
-        <option value="hasard" ${c.mode_lots === "hasard" ? "selected" : ""}>Au hasard parmi les lots restants</option>
-        <option value="par_jour" ${c.mode_lots === "par_jour" ? "selected" : ""}>Un lot fixé à l’avance pour chaque case</option></select>
-      <label class="adm-check" style="margin-top:16px"><input type="checkbox" id="rActif" ${c.actif ? "checked" : ""}> Calendrier ouvert aux participants</label>
-      ${c.date_simulee ? `<p class="muted">Calendrier de test : la date est simulée au ${new Date(c.date_simulee + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}.</p>` : ""}
-      <div style="height:12px"></div><button class="btn block" id="rOk">Enregistrer</button></div>`;
-  $("#copier").onclick = async () => {
-    try { await navigator.clipboard.writeText(lien); toast("Lien copié."); }
-    catch { $("#lien").select(); toast("Sélectionne le lien pour le copier."); }
-  };
-  $("#rOk").onclick = async () => {
-    if (!$("#rActif").checked && c.actif && !confirm("Fermer le calendrier ? Les participants ne pourront plus se connecter.")) return;
-    const ok = await actionAdmin("admin_reglages", { p_nom: $("#rNom").value, p_nb_gagnants: parseInt($("#rNb").value, 10), p_mode_lots: $("#rMode").value, p_actif: $("#rActif").checked }, "Réglages enregistrés.");
-    if (ok){ try { await rafraichir(); } catch {} header(); rendreAdmin("reglages"); }
-  };
-}
+/* Page intégrée dans le site d’un CSE (iframe) : on ramène le calendrier en haut de l’écran
+   à chaque changement de vue, pour que les fenêtres et messages restent visibles. */
+const integre = (() => { try { return window.self !== window.top; } catch { return true; } })();
+function cadrer(){ if (integre){ try { document.documentElement.scrollIntoView({ block: "start" }); } catch {} } }
 
 /* ====================== Routeur ====================== */
 function go(v){ if (location.hash === "#" + v) route(); else location.hash = v; }
@@ -3004,10 +2822,10 @@ async function route(){
   else if (v === "classement") vueClassement("joueurs");
   else if (v === "lots") vueClassement("lots");
   else if (v === "tirage") vueTirage();
-  else if (v === "admin") vueAdmin();
+  else if (v === "admin"){ location.href = `admin.html?cse=${encodeURIComponent(CSE_SLUG)}`; return; }
   else if (/^jeu-\d+$/.test(v) && +v.slice(4) >= 1 && +v.slice(4) <= 24) vueJeu(+v.slice(4));
   else vueAccueil();
-  header(); window.scrollTo(0, 0);
+  header(); window.scrollTo(0, 0); cadrer();
 }
 
 /* Page laissée ouverte longtemps (par exemple la veille au soir) : on recharge au retour. */
@@ -3020,6 +2838,7 @@ document.addEventListener("visibilitychange", () => {
 
 motif();
 addEventListener("hashchange", route);
+rpc("infos_cse", { p_cse: CSE_SLUG }).then(i => { infosCse = i; header(); if (!state.token) route(); }).catch(() => {});
 route();
 })();
 </script>

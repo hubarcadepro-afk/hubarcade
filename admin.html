@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Console du CSE · Hubarcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --wall:#1E4A37; --wall-2:#235540; --wall-ink:#F3EFE4; --wall-soft:#B9CDBF;
+  --bg:#F6F2E8; --paper:#FFFDF8; --paper-2:#F1EADB; --line:#DED5C2;
+  --ink:#1F2E27; --ink-soft:#56665D;
+  --red:#A8232B; --red-deep:#7C1920; --red-tint:#F8E6E4;
+  --gold:#B07F22; --gold-tint:#FBF0D9;
+  --ok:#2F7A4F; --ok-tint:#E3F1E7;
+  --focus:#C98A1B;
+  --f-title:"Fraunces", Georgia, "Times New Roman", serif;
+  --f-body:"Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-logo:"Bungee", "Arial Black", Impact, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --wall:#10291E; --wall-2:#163527; --wall-ink:#ECE6D9; --wall-soft:#9DB5A6;
+    --bg:#161C19; --paper:#1F2723; --paper-2:#26302B; --line:#34413A;
+    --ink:#ECE6D9; --ink-soft:#AAB6AE;
+    --red:#E0656B; --red-deep:#F08A8F; --red-tint:#3A2224;
+    --gold:#E2B45C; --gold-tint:#3A3020;
+    --ok:#6BC08F; --ok-tint:#1F3628;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --wall:#10291E; --wall-2:#163527; --wall-ink:#ECE6D9; --wall-soft:#9DB5A6;
+  --bg:#161C19; --paper:#1F2723; --paper-2:#26302B; --line:#34413A;
+  --ink:#ECE6D9; --ink-soft:#AAB6AE;
+  --red:#E0656B; --red-deep:#F08A8F; --red-tint:#3A2224;
+  --gold:#E2B45C; --gold-tint:#3A3020;
+  --ok:#6BC08F; --ok-tint:#1F3628;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--wall)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+h1,h2,h3{font-family:var(--f-title);font-weight:600;line-height:1.2;margin:0}
+h1{font-size:1.75rem} h2{font-size:1.2rem} h3{font-size:1.02rem}
+p{margin:0}
+a{color:var(--red)}
+
+/* Barre du haut */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--wall);color:var(--wall-ink);
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 20px;border-bottom:3px solid var(--red)}
+.logo{font-family:var(--f-logo);font-size:1.15rem;letter-spacing:.5px;color:var(--wall-ink);margin-right:auto}
+.logo small{font-family:var(--f-body);font-weight:600;font-size:.8rem;color:var(--wall-soft);margin-left:8px;letter-spacing:0}
+.seg{display:inline-flex;border:1px solid var(--wall-soft);border-radius:999px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--wall-ink);padding:6px 14px;min-height:36px;cursor:pointer;font-weight:700;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--wall-ink);color:var(--wall)}
+.top label{font-size:.85rem;color:var(--wall-soft);display:flex;align-items:center;gap:8px}
+.top select{background:var(--wall-2);color:var(--wall-ink);border:1px solid var(--wall-soft);border-radius:8px;padding:5px 8px;min-height:36px}
+.linkbtn{background:none;border:0;color:var(--wall-soft);text-decoration:underline;cursor:pointer;font-size:.85rem;min-height:36px}
+
+.banner{padding:10px 20px;font-weight:600;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner.imp{background:var(--gold-tint);color:var(--ink);border-bottom:1px solid var(--line)}
+.banner.off{background:var(--red-tint);color:var(--ink);border-bottom:1px solid var(--line)}
+
+/* Mise en page */
+.layout{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - 60px)}
+nav.side{background:var(--paper);border-right:1px solid var(--line);padding:18px 12px}
+.cse-chip{display:flex;align-items:center;gap:10px;padding:8px 10px 16px;border-bottom:1px solid var(--line);margin-bottom:10px}
+.mono{width:40px;height:40px;border-radius:10px;display:grid;place-items:center;font-weight:800;color:#fff;background:var(--wall);flex:none;overflow:hidden}
+.mono img{width:100%;height:100%;object-fit:cover}
+.cse-chip b{display:block;line-height:1.2}
+.cse-chip div span{font-size:.8rem;color:var(--ink-soft)}
+nav.side ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+nav.side button{width:100%;text-align:left;border:0;background:transparent;padding:9px 12px;border-radius:8px;cursor:pointer;font-weight:600;color:var(--ink-soft);display:flex;justify-content:space-between;align-items:center;min-height:40px}
+nav.side button:hover{background:var(--paper-2);color:var(--ink)}
+nav.side button[aria-current="page"]{background:var(--wall);color:var(--wall-ink)}
+.dot{min-width:20px;height:20px;border-radius:999px;background:var(--red);color:#fff;font-size:.72rem;display:grid;place-items:center;padding:0 6px}
+main{padding:28px clamp(16px,3vw,40px) 60px;max-width:1100px;width:100%}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.head p{color:var(--ink-soft);margin-top:4px}
+
+/* Blocs */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px;margin-bottom:18px}
+.card.framed{border:2px solid var(--red)}
+.card > h2{margin-bottom:12px}
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.stat b{display:block;font-family:var(--f-title);font-size:2.1rem;line-height:1.1}
+.stat span{color:var(--ink-soft);font-size:.9rem}
+.muted{color:var(--ink-soft)}
+.small{font-size:.86rem}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+.btn{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:8px;padding:8px 14px;min-height:40px;cursor:pointer;font-weight:700;font-size:.92rem}
+.btn:hover{background:var(--paper-2)}
+.btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+.btn.primary:hover{background:var(--red-deep);border-color:var(--red-deep)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--red);text-decoration:underline;padding:8px 6px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.btn.sm{min-height:34px;padding:5px 10px;font-size:.84rem}
+
+.yn{display:inline-flex;border:2px solid var(--ink);border-radius:10px;overflow:hidden}
+.yn button{border:0;background:var(--paper);padding:8px 22px;min-height:44px;font-weight:800;cursor:pointer}
+.yn button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field > span{font-weight:700;font-size:.9rem}
+.field small{color:var(--ink-soft)}
+input[type=text],input[type=email],input[type=number],input[type=search],select.in,textarea{
+  border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:9px 11px;min-height:42px;width:100%}
+textarea{min-height:120px;resize:vertical;line-height:1.5}
+input:disabled,textarea:disabled{background:var(--paper-2);color:var(--ink-soft)}
+
+.tag{display:inline-block;font-size:.76rem;font-weight:800;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.tag.ok{background:var(--ok-tint);color:var(--ok)}
+.tag.warn{background:var(--gold-tint);color:var(--gold)}
+.tag.bad{background:var(--red-tint);color:var(--red)}
+.tag.neutral{background:var(--paper-2);color:var(--ink-soft)}
+
+.alert{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;border-radius:10px;margin-bottom:10px;border:1px solid var(--line);background:var(--paper)}
+.alert.warn{background:var(--gold-tint);border-color:transparent}
+.alert.bad{background:var(--red-tint);border-color:transparent}
+.alert.ok{background:var(--ok-tint);border-color:transparent}
+
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:.92rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.8rem;color:var(--ink-soft);font-weight:800;background:var(--paper-2)}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.won td{color:var(--ink-soft)}
+.av{width:28px;height:28px;border-radius:50%;display:inline-grid;place-items:center;font-size:.72rem;font-weight:800;color:#fff;margin-right:8px;vertical-align:middle}
+code.v{font-weight:800;letter-spacing:2px;font-size:.9rem}
+
+.checklist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.checklist li{display:flex;gap:10px;align-items:center}
+.ck{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:800;flex:none}
+.ck.y{background:var(--ok);color:#fff}.ck.n{border:2px solid var(--line)}
+
+.preview{border-radius:12px;padding:16px;background:var(--wall);color:#fff;display:flex;flex-direction:column;gap:12px;min-height:220px;background-size:cover;background-position:center;position:relative;overflow:hidden}
+.preview .pv-head{display:flex;align-items:center;gap:10px;position:relative}
+.preview .pv-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;position:relative}
+.preview .pv-grid div{aspect-ratio:1;border-radius:6px;background:rgba(255,255,255,.88);color:var(--wall);display:grid;place-items:center;font-weight:800;font-size:.8rem;border:2px solid var(--pv-accent,#A8232B)}
+.preview .pv-shade{position:absolute;inset:0;background:rgba(0,0,0,.35)}
+.imgbox{border:2px dashed var(--line);border-radius:10px;padding:14px;display:flex;gap:14px;align-items:center}
+.imgbox .thumb{width:72px;height:72px;border-radius:10px;background:var(--paper-2);display:grid;place-items:center;overflow:hidden;flex:none;font-size:.75rem;color:var(--ink-soft);text-align:center}
+.imgbox .thumb img{width:100%;height:100%;object-fit:cover}
+
+dialog{border:0;border-radius:14px;padding:0;max-width:min(560px,calc(100vw - 24px));width:100%;background:var(--paper);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(10,20,15,.55)}
+.dlg{padding:22px}
+.dlg h2{margin-bottom:10px}
+.dlg .actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer}
+.radio input{margin-top:4px;width:18px;height:18px}
+.radio b{display:block}
+
+.days{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px;margin:14px 0 8px}
+.dd{border:2px solid var(--line);background:var(--paper);border-radius:10px;padding:6px 4px;min-height:52px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:0}
+.dd b{font-family:var(--f-title);font-size:1.05rem}
+.dd span{font-size:.72rem;font-weight:700;color:var(--ink-soft)}
+.dd[aria-pressed="true"]{background:var(--wall);border-color:var(--wall);color:var(--wall-ink)}
+.dd[aria-pressed="true"] span{color:var(--wall-soft)}
+.dd[disabled]{opacity:.5;cursor:not-allowed}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:12px 18px;border-radius:10px;font-weight:700;z-index:50;max-width:calc(100vw - 32px);display:none}
+#toast.show{display:block}
+
+@media (max-width:820px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  nav.side{min-width:0;border-right:0;border-bottom:1px solid var(--line);padding:10px 12px}
+  .cse-chip{padding:4px 4px 10px;margin-bottom:8px}
+  nav.side ul{flex-direction:row;overflow-x:auto;gap:6px;padding-bottom:4px}
+  nav.side li{flex:none}
+  nav.side button{white-space:nowrap;border:1px solid var(--line)}
+  main{padding-top:18px}
+  h1{font-size:1.45rem}
+  .top{gap:10px}
+  .logo{width:100%}
+}
+@media (prefers-reduced-motion:no-preference){
+  .btn,nav.side button{transition:background .15s}
+}
+.top a.lk{color:var(--wall-soft);font-size:.85rem;font-weight:700}
+.login{max-width:440px;margin:40px auto;padding:0 16px}
+.err{color:var(--red);font-weight:700;min-height:1.3em;margin:4px 0 10px}
+.loading{padding:40px;color:var(--ink-soft)}
+</style>
+</head>
+<body>
+<header class="top" id="top"></header>
+<div id="banners"></div>
+<div class="layout" id="layout">
+  <nav class="side" id="nav" aria-label="Navigation de la console"></nav>
+  <main id="main"><p class="loading">Chargement de la console…</p></main>
+</div>
+<dialog id="dlg"><div class="dlg" id="dlgBody"></div></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+"use strict";
+/* ====================== Connexion au serveur ====================== */
+const SUPABASE_URL = "https://dkzbbxzhafszafndmsfj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_5bVzazmMPQGaDPTYWPLMrQ_3AotcvVF";
+const CSE_SLUG = (new URLSearchParams(location.search).get("cse") || "feuvert-siege").toLowerCase();
+const CLE_TOKEN = "cal2-token-" + CSE_SLUG; /* même session que le calendrier */
+const lireToken = () => { try { return JSON.parse(localStorage.getItem(CLE_TOKEN)); } catch { return null; } };
+const ecrireToken = t => { try { if (t) localStorage.setItem(CLE_TOKEN, JSON.stringify(t)); else localStorage.removeItem(CLE_TOKEN); } catch {} };
+async function rpc(fn, args = {}){
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY }, body: JSON.stringify(args) });
+  const txt = await r.text(); let data = null; try { data = txt ? JSON.parse(txt) : null; } catch {}
+  if (!r.ok){ const e = new Error((data && data.message) || `Erreur ${r.status}`); e.session = /session_invalide/.test(e.message); e.refus = /acces_refuse/.test(e.message); throw e; }
+  return data;
+}
+
+/* ====================== Données ====================== */
+const JEUX = ["Mots mêlés","Où est le lutin ?","Motus de Noël","Memory de Noël","Course de traîneau","Tetris de la hotte","Le labyrinthe dans la brume","La pile de cadeaux","2048 de Noël","Le stand de tir du marché","Plus ou moins cher ?","Le Juste Prix","Observe la scène","Mots croisés","Le Pendu","Le blackjack du Père Noël","Drapeaux du monde","Sudoku","Casse-briques de Noël","Le lancer dans la cheminée","Curling sur glace","Escape game de l’atelier","Le flipper de Noël","Le tour de France de Noël"];
+const AV_COUL = { pere: ["Père Noël", "#A8232B"], mere: ["Mère Noël", "#7C1920"], lutin: ["Lutin", "#2F7A4F"], renne: ["Renne", "#8A5A2B"], bonhomme: ["Bonhomme de neige", "#3D6B8C"], epice: ["Pain d’épices", "#B07F22"] };
+const WD = ["mar","mer","jeu","ven","sam","dim","lun"]; /* 1er décembre 2026 = mardi */
+const dateCourte = d => `${WD[(d - 1) % 7]}. ${d === 1 ? "1er" : d} déc.`;
+let token = lireToken(), D = null, vue = "dash", pjour = null;
+const S = { empFiltre: "", empVue: "actifs" };
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pl = (n, mot, motPl) => `${n} ${n > 1 ? (motPl || mot + "s") : mot}`;
+const nomJeu = g => JEUX[g - 1] || "";
+function av(id, nom){ const [lab, col] = AV_COUL[id] || ["", "#8a8f8c"]; const ini = (nom || "?").split(/\s+/).map(x => x[0]).join("").slice(0, 2).toUpperCase(); return `<span class="av" style="background:${col}" title="${esc(lab)}" aria-hidden="true">${esc(ini)}</span>`; }
+function initiales(nom){ return (nom.replace(/^CSE\s+/i, "").split(/\s+/).filter(m => /^[A-ZÀ-Ý]/.test(m)).slice(0, 2).map(m => m[0]).join("") || "CSE").toUpperCase(); }
+const mono = () => `<span class="mono">${D.cse.logo ? `<img src="${esc(D.cse.logo)}" alt="">` : esc(initiales(D.cse.nom))}</span>`;
+function toast(t){ const el = $("#toast"); el.textContent = t; el.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("show"), 3400); }
+const dlg = $("#dlg");
+function ouvrirDlg(html){ $("#dlgBody").innerHTML = html; dlg.showModal(); const f = dlg.querySelector("input,textarea,button"); f && f.focus(); }
+function confirmer(titre, texte, libelle = "Confirmer"){
+  return new Promise(ok => {
+    ouvrirDlg(`<h2>${esc(titre)}</h2><p>${texte}</p><div class="actions"><button class="btn" id="dNon">Annuler</button><button class="btn primary" id="dOui">${esc(libelle)}</button></div>`);
+    $("#dNon").onclick = () => { dlg.close(); ok(false); };
+    $("#dOui").onclick = () => { dlg.close(); ok(true); };
+  });
+}
+
+/* Indicateurs */
+const actifs = () => D.salaries.filter(s => s.statut !== "retire");
+const tiragesEnAttente = () => D.jours.filter(j => j.tirage && !j.tirage.publie);
+function besoinLots(){
+  const restants = D.jours.filter(j => j.avec_tirage && !j.tirage);
+  const libres = D.lots.filter(l => !l.gagnant);
+  if (D.cse.mode_lots === "par_jour"){
+    const sans = restants.filter(j => !libres.some(l => l.jour === j.jour)).map(j => j.jour);
+    return { restants: restants.length, besoin: restants.length, libres: libres.length, manque: sans.length, joursSans: sans };
+  }
+  const besoin = restants.length * D.cse.nb_gagnants;
+  return { restants: restants.length, besoin, libres: libres.length, manque: Math.max(0, besoin - libres.length), joursSans: [] };
+}
+
+/* ====================== Actions ====================== */
+async function charger(){ D = await rpc("admin_console", { p_token: token }); }
+async function api(fn, args, msgOk){
+  try {
+    const r = await rpc(fn, Object.assign({ p_token: token }, args));
+    if (r && r.erreur){ toast(MESSAGES[r.erreur] || "Action impossible."); return null; }
+    await charger(); rendre();
+    if (msgOk) toast(typeof msgOk === "function" ? msgOk(r) : msgOk);
+    return r || true;
+  } catch (e){
+    if (e.session || e.refus){ deconnecter(); return null; }
+    toast("Action impossible pour le moment. Vérifiez la connexion internet."); return null;
+  }
+}
+const MESSAGES = {
+  soi_meme: "Impossible sur votre propre compte.", deja_gagne: "Ce lot a déjà été gagné : il ne peut plus être modifié.",
+  libelle_vide: "Indiquez le nom du lot.", jour_invalide: "Le jour doit être entre 1 et 24.", nom_vide: "Indiquez le nom du CSE.",
+  nb_gagnants: "Le nombre de gagnants doit être entre 1 et 20.", logo: "Image trop lourde ou format non reconnu.",
+  email: "Adresse e-mail invalide.", prenom: "Indiquez le prénom.", inconnu: "Personne introuvable.",
+  demo_protege: "Compte de démonstration : il ne peut pas être modifié.", demo_verrouille: "Dans la démo, le nom, le logo et l’ouverture sont verrouillés.",
+};
+function deconnecter(){
+  const t = token; token = null; ecrireToken(null); D = null;
+  if (t) rpc("deconnexion", { p_token: t }).catch(() => {});
+  vueConnexion();
+}
+
+/* ====================== Connexion ====================== */
+function vueConnexion(message = ""){
+  $("#top").innerHTML = `<span class="logo">Hubarcade<small>Console du CSE</small></span>`;
+  $("#banners").innerHTML = ""; $("#nav").hidden = true;
+  $("#layout").style.gridTemplateColumns = "minmax(0,1fr)";
+  $("#main").innerHTML = `<div class="login"><div class="card framed"><h1 style="margin-bottom:8px">Console du CSE</h1>
+    <p class="muted" style="margin-bottom:16px">Connectez-vous avec votre adresse e-mail d’administrateur et votre code à 4 chiffres, comme sur le calendrier.</p>
+    <label class="field"><span>Adresse e-mail</span><input type="email" id="lEm" autocomplete="email"></label>
+    <label class="field"><span>Code à 4 chiffres</span><input type="text" id="lPin" inputmode="numeric" maxlength="4" autocomplete="current-password" style="-webkit-text-security:disc"></label>
+    <p class="err" id="lErr" role="alert">${esc(message)}</p>
+    <button class="btn primary" id="lOk" style="width:100%">Se connecter</button>
+    <p class="small muted" style="margin-top:12px">Première connexion ? Le code que vous tapez devient votre code personnel.</p></div>
+    <div class="card" id="demoBox" hidden style="text-align:center"><b>Accès de démonstration</b><p style="margin:6px 0 12px">E-mail : <b>admin.demo@exemple.fr</b> · code : <b>1234</b></p><button class="btn" id="remplir">Remplir pour moi</button></div></div>`;
+  rpc("infos_cse", { p_cse: CSE_SLUG }).then(i => { if (i && i.demo && $("#demoBox")){ $("#demoBox").hidden = false; $("#remplir").onclick = () => { $("#lEm").value = "admin.demo@exemple.fr"; $("#lPin").value = "1234"; $("#lOk").focus(); }; } }).catch(() => {});
+  const go = async () => {
+    const email = $("#lEm").value.trim(), pin = $("#lPin").value.trim();
+    if (!email || !/^[0-9]{4}$/.test(pin)){ $("#lErr").textContent = "Indiquez votre e-mail et un code de 4 chiffres."; return; }
+    $("#lOk").disabled = true;
+    try {
+      const r = await rpc("connexion", { p_cse: CSE_SLUG, p_email: email, p_pin: pin });
+      if (r.erreur){
+        $("#lErr").textContent = { email_inconnu: "Cette adresse n’est pas dans la liste de ce CSE.", pin_faux: `Code incorrect. ${pl(r.essais_restants, "essai restant", "essais restants")}.`, bloque: "Trop de codes incorrects : accès bloqué. Un autre admin peut réinitialiser votre code.", cse_inconnu: "Lien de console invalide.", cse_inactif: "Ce calendrier n’est pas encore ouvert." }[r.erreur] || "Connexion impossible.";
+        return;
+      }
+      token = r.token; ecrireToken(token); await demarrer();
+    } catch { $("#lErr").textContent = "Connexion impossible pour le moment."; }
+    finally { const b = $("#lOk"); if (b) b.disabled = false; }
+  };
+  $("#lOk").onclick = go; $("#lPin").onkeydown = e => { if (e.key === "Enter") go(); };
+}
+
+async function demarrer(){
+  if (!token) return vueConnexion();
+  try { await charger(); }
+  catch (e){
+    if (e.refus){ return vueConnexion("Ce compte n’est pas administrateur de ce CSE."); }
+    if (e.session){ ecrireToken(null); token = null; return vueConnexion(); }
+    $("#main").innerHTML = `<div class="card"><h2>Console indisponible</h2><p class="muted">Vérifiez la connexion internet puis rechargez la page.</p></div>`; return;
+  }
+  $("#nav").hidden = false; $("#layout").style.gridTemplateColumns = "";
+  rendre();
+}
+
+/* ====================== Cadre ====================== */
+const NAV = [["dash", "Tableau de bord"], ["draws", "Tirages"], ["parts", "Participations"], ["lots", "Lots"], ["emps", "Salariés"], ["ident", "Identité"], ["admins", "Administrateurs"]];
+function rendre(){
+  const c = D.cse, lien = `index.html?cse=${encodeURIComponent(c.slug)}`;
+  $("#top").innerHTML = `<span class="logo">Hubarcade<small>Console du CSE${c.date_simulee && !c.demo ? ` · date simulée : ${dateCourte(+c.date_simulee.slice(8, 10))}` : ""}</small></span>
+    <a class="lk" href="${lien}">Voir le calendrier</a><button class="linkbtn" id="deco">Se déconnecter</button>`;
+  $("#deco").onclick = deconnecter;
+  $("#banners").innerHTML = c.actif || c.demo ? "" : `<div class="banner off">Le calendrier est fermé : seuls les administrateurs peuvent se connecter. <button class="btn sm primary" id="ouvrir">Ouvrir aux salariés</button></div>`;
+  if (!c.actif && !c.demo) $("#ouvrir").onclick = async () => { if (await confirmer("Ouvrir le calendrier", "Les salariés de la liste pourront se connecter et jouer à la case du jour.", "Ouvrir")) api("admin_maj_cse", { p_champs: { actif: true } }, "Calendrier ouvert aux salariés."); };
+  const up = tiragesEnAttente().length, manque = besoinLots().manque;
+  $("#nav").innerHTML = `<div class="cse-chip">${mono()}<div><b>${esc(c.nom)}</b><span>${c.actif ? "Calendrier ouvert" : "Calendrier fermé"}</span></div></div>
+    <ul>${NAV.concat(c.demo ? [["demo", "Outils de démo"]] : []).map(([k, l]) => { let b = ""; if (k === "draws" && up) b = `<span class="dot" aria-label="${up} à publier">${up}</span>`; if (k === "lots" && manque) b = `<span class="dot" aria-label="lots manquants">!</span>`;
+      return `<li><button data-v="${k}" ${vue === k ? 'aria-current="page"' : ""}>${l}${b}</button></li>`; }).join("")}</ul>`;
+  $("#nav").querySelectorAll("button[data-v]").forEach(b => b.onclick = () => { vue = b.dataset.v; rendre(); window.scrollTo(0, 0); });
+  const m = $("#main");
+  if (vue === "demo" && !c.demo) vue = "dash";
+  m.innerHTML = ({ dash: vDash, draws: vDraws, parts: vParts, lots: vLots, emps: vEmps, ident: vIdent, admins: vAdmins, demo: vDemo })[vue]();
+  ({ dash: aDash, draws: aDraws, parts: aParts, lots: aLots, emps: aEmps, ident: aIdent, admins: aAdmins, demo: aDemo })[vue](m);
+}
+const allerA = v => { vue = v; rendre(); window.scrollTo(0, 0); };
+
+/* ====================== Tableau de bord ====================== */
+function vDash(){
+  const t = D.cse.jour, bl = besoinLots(), ins = actifs().filter(s => s.statut === "actif").length;
+  let auj;
+  if (t >= 1 && t <= 24){
+    const j = D.jours[t - 1];
+    auj = `<div class="card framed"><div class="spread"><div><h2>Aujourd’hui : jour ${t}, ${esc(nomJeu(j.jeu))}</h2><p class="muted">Objectif : ${esc(j.objectif)}</p></div><button class="btn" data-a="parts">Voir les participations</button></div>
+      <div class="grid g3" style="margin-top:16px">
+        <div class="stat"><b>${j.joueurs}</b><span>joueurs aujourd’hui sur ${pl(ins, "salarié connecté", "salariés connectés")}</span></div>
+        <div class="stat"><b>${j.qualifies}</b><span>${j.avec_tirage ? "qualifiés pour le tirage" : "ont atteint l’objectif"}</span></div>
+        ${j.avec_tirage ? `<div class="stat"><b>${D.cse.nb_gagnants}</b><span>gagnant${D.cse.nb_gagnants > 1 ? "s" : ""} tiré${D.cse.nb_gagnants > 1 ? "s" : ""} ${t === 24 ? "à 17h01" : "à 00h01"}</span></div>` : `<div class="stat"><b>—</b><span>pas de tirage : jeu pour le plaisir</span></div>`}
+      </div></div>`;
+  } else if (t < 1) auj = `<div class="card framed"><h2>Le calendrier ouvre le mardi 1er décembre</h2><p class="muted">Vérifiez que tout est prêt avant l’ouverture de la première case.</p></div>`;
+  else auj = `<div class="card framed"><h2>Le calendrier 2026 est terminé</h2><p class="muted">Les tirages ont eu lieu. Pensez à remettre les derniers lots et à retirer la liste des salariés après l’opération.</p></div>`;
+  const alertes = [], up = tiragesEnAttente();
+  if (up.length) alertes.push(`<div class="alert bad"><span><b>${pl(up.length, "tirage")} en attente de publication.</b> Les salariés ne voient pas encore les gagnants.</span><button class="btn sm primary" data-a="draws">Publier</button></div>`);
+  if (bl.manque) alertes.push(`<div class="alert warn"><span><b>Il manque ${pl(bl.manque, "lot")}.</b> ${D.cse.mode_lots === "par_jour" ? `Jours sans lot prévu : ${bl.joursSans.join(", ")}.` : `${pl(bl.restants, "tirage")} à venir × ${pl(D.cse.nb_gagnants, "gagnant")} = ${bl.besoin} lots nécessaires, ${bl.libres} disponibles.`}</span><button class="btn sm" data-a="lots">Ajouter des lots</button></div>`);
+  if (!alertes.length) alertes.push(`<div class="alert ok"><span>Rien à signaler : les tirages sont publiés et il y a assez de lots.</span></div>`);
+  const dernier = D.jours.filter(j => j.tirage).slice(-1)[0];
+  const pret = [
+    [actifs().length > 0, `Liste des salariés importée (${pl(actifs().length, "adresse")})`, "emps"],
+    [bl.manque === 0, "Assez de lots pour tous les tirages", "lots"],
+    [!!D.cse.logo, "Logo du CSE ajouté (facultatif)", "ident"],
+    [D.cse.actif, "Calendrier ouvert aux salariés", null]];
+  return `<div class="head"><div><h1>Tableau de bord</h1><p>${t >= 1 && t <= 24 ? `${esc(dateCourte(t))} · ${esc(D.cse.heure)}` : ""}</p></div></div>
+    ${auj}
+    <div class="card"><h2>À traiter</h2>${alertes.join("")}</div>
+    <div class="grid g2">
+      <div class="card"><h2>Dernier tirage</h2>${dernier ? `<p class="muted small">Jour ${dernier.jour}, ${esc(nomJeu(dernier.jeu))} · ${pl(dernier.tirage.nb_qualifies, "qualifié")}</p>
+        <ul class="checklist" style="margin-top:10px">${dernier.tirage.gagnants.map(g => `<li>${av(g.avatar, g.nom)}<span><b>${esc(g.nom)}</b><br><span class="small muted">${esc(g.lot || "Aucun lot disponible")}</span></span></li>`).join("") || '<li class="muted">Pas de gagnant ce jour-là.</li>'}</ul>
+        <p style="margin-top:10px">${dernier.tirage.publie ? '<span class="tag ok">Publié</span>' : '<span class="tag bad">En attente de publication</span>'}</p>`
+        : `<p class="muted">${D.jours.some(j => j.avec_tirage) ? "Aucun tirage effectué pour l’instant." : "Aucun jour avec tirage n’est prévu."}</p>`}</div>
+      <div class="card"><h2>Prêt pour décembre</h2><ul class="checklist">${pret.map(([ok, l, v]) => `<li><span class="ck ${ok ? "y" : "n"}" aria-hidden="true">${ok ? "✓" : ""}</span><span>${l}${!ok && v ? ` · <button class="btn ghost sm" data-a="${v}">Compléter</button>` : ""}</span></li>`).join("")}</ul></div>
+    </div>`;
+}
+function aDash(m){ m.querySelectorAll("button[data-a]").forEach(b => b.onclick = () => { if (b.dataset.a === "parts") pjour = D.cse.jour; allerA(b.dataset.a); }); }
+
+/* ====================== Tirages ====================== */
+function vDraws(){
+  const t = D.cse.jour, rows = [];
+  for (let d = 24; d >= 1; d--){
+    const j = D.jours[d - 1], tr = j.tirage, nom = `Jour ${d}<br><span class="small muted">${esc(nomJeu(j.jeu))}</span>`;
+    if (!j.avec_tirage){ if (d <= t) rows.push(`<tr><td>${nom}</td><td colspan="3" class="muted">Pas de tirage ce jour : jeu pour le plaisir</td><td><span class="tag neutral">Sans tirage</span></td></tr>`); continue; }
+    if (!tr){ if (d <= t) rows.push(`<tr><td>${nom}</td><td colspan="3" class="muted">Tirage prévu ${d === 24 ? "le 24 déc. à 17h01" : `le ${esc(dateCourte(d + 1))} à 00h01`}</td><td><span class="tag neutral">À venir</span></td></tr>`); continue; }
+    rows.push(`<tr><td>${nom}</td><td class="num">${tr.nb_qualifies}</td>
+      <td>${tr.gagnants.length ? tr.gagnants.map(g => `<div style="margin:2px 0">${av(g.avatar, g.nom)}<b>${esc(g.nom)}</b> <span class="small muted">· ${esc(g.lot || "aucun lot disponible")}</span><br><span class="small muted" style="margin-left:36px">${esc(g.email)}</span></div>`).join("") : `<span class="muted">${tr.nb_qualifies ? "Aucun lot disponible" : "Aucun qualifié"}</span>`}</td>
+      <td><code class="v">${esc(tr.code.toUpperCase())}</code></td>
+      <td>${tr.publie ? '<span class="tag ok">Publié</span>' : `<button class="btn sm primary" data-pub="${d}">Publier</button>`}</td></tr>`);
+  }
+  const up = tiragesEnAttente(), nbJours = D.jours.filter(j => j.avec_tirage).length;
+  const prochain = D.jours.find(j => j.avec_tirage && !j.tirage && j.jour > t) || D.jours.find(j => j.avec_tirage && !j.tirage);
+  return `<div class="head"><div><h1>Tirages</h1><p>Les jours avec tirage, il a lieu automatiquement à 00h01 parmi les qualifiés du jeu de la veille (le 24 à 17h01). Le résultat est figé dès le tirage.</p></div></div>
+  <div class="card framed"><div class="spread"><div style="max-width:560px"><h2>Publication automatique des gagnants</h2>
+    <p class="muted small" style="margin-top:6px">Sur <b>Oui</b>, les salariés voient les gagnants dès le tirage. Sur <b>Non</b>, le tirage a quand même lieu à l’heure prévue, mais un admin doit cliquer sur « Publier » ; en attendant, les salariés voient « Résultats bientôt disponibles ». Le changement s’applique aux tirages suivants.</p></div>
+    <div class="yn" role="group" aria-label="Publication automatique des gagnants"><button data-auto="1" aria-pressed="${D.cse.publication_auto}">Oui</button><button data-auto="0" aria-pressed="${!D.cse.publication_auto}">Non</button></div></div></div>
+  <div class="card framed"><div class="spread"><div style="max-width:560px"><h2>Jours avec tirage au sort</h2>
+    <p class="muted small" style="margin-top:6px">Les jours sans tirage, le jeu reste ouvert pour le plaisir, sans lot. Chaque jour reste modifiable jusqu’à l’ouverture de sa case.</p></div>
+    <div class="row"><button class="btn sm" data-tous="1">Tous les jours</button><button class="btn sm" data-tous="0">Aucun jour</button></div></div>
+    <div class="days" role="group" aria-label="Jours avec tirage">${D.jours.map(j => { const lk = j.jour <= t; return `<button class="dd" data-dd="${j.jour}" aria-pressed="${j.avec_tirage}" ${lk ? "disabled" : ""} aria-label="Jour ${j.jour} : ${j.avec_tirage ? "avec" : "sans"} tirage${lk ? ", case déjà ouverte" : ""}"><b>${j.jour}</b><span>${j.avec_tirage ? "Tirage" : "Sans"}</span></button>`; }).join("")}</div>
+    <p class="small muted">${pl(nbJours, "jour")} avec tirage sur 24${nbJours === 0 ? " : le calendrier est uniquement pour le plaisir, aucun lot n’est nécessaire" : ""}.</p></div>
+  <div class="card"><h2>Gagnants par tirage</h2>
+    <div class="row"><input type="number" id="nWin" min="1" max="20" value="${D.cse.nb_gagnants}" style="width:90px" aria-label="Nombre de gagnants par tirage"><button class="btn" id="saveNWin">Enregistrer</button></div>
+    <p class="small muted" style="margin-top:8px">1 par défaut. ${prochain ? `S’applique à partir du tirage du jour ${prochain.jour} ; ` : ""}les tirages déjà faits ne changent pas.</p></div>
+  ${up.length > 1 ? `<div class="alert bad"><span><b>${pl(up.length, "tirage")} en attente.</b></span><button class="btn sm primary" id="pubTout">Tout publier</button></div>` : ""}
+  <div class="tbl-wrap"><table><thead><tr><th>Jeu</th><th class="num">Qualifiés</th><th>Gagnants et lots</th><th>Code de vérification</th><th>Statut</th></tr></thead>
+  <tbody>${rows.join("") || `<tr><td colspan="5" class="muted">Les tirages apparaîtront ici à partir du 2 décembre.</td></tr>`}</tbody></table></div>`;
+}
+function aDraws(m){
+  m.querySelectorAll("button[data-auto]").forEach(b => b.onclick = () => api("admin_maj_cse", { p_champs: { publication_auto: b.dataset.auto === "1" } }, b.dataset.auto === "1" ? "Publication automatique activée." : "Les prochains tirages attendront votre publication."));
+  const envoyerJours = jours => api("admin_jours_tirage", { p_jours: jours }, "Jours de tirage enregistrés.");
+  m.querySelectorAll("button[data-dd]").forEach(b => b.onclick = () => {
+    const d = +b.dataset.dd; envoyerJours(D.jours.filter(j => j.jour === d ? !j.avec_tirage : j.avec_tirage).map(j => j.jour));
+  });
+  m.querySelectorAll("button[data-tous]").forEach(b => b.onclick = () => {
+    const t = D.cse.jour; envoyerJours(D.jours.filter(j => (j.jour <= t ? j.avec_tirage : b.dataset.tous === "1")).map(j => j.jour));
+  });
+  $("#saveNWin").onclick = () => api("admin_maj_cse", { p_champs: { nb_gagnants: parseInt($("#nWin").value, 10) } }, "Nombre de gagnants enregistré.");
+  m.querySelectorAll("button[data-pub]").forEach(b => b.onclick = () => api("admin_publier", { p_jour: +b.dataset.pub }, "Tirage publié : les salariés voient les gagnants."));
+  const tout = $("#pubTout"); if (tout) tout.onclick = () => api("admin_publier", { p_jour: null }, r => `${pl(r.publies, "tirage publié", "tirages publiés")}.`);
+}
+
+/* ====================== Participations ====================== */
+function vParts(){
+  const t = D.cse.jour;
+  if (t < 1) return `<div class="head"><div><h1>Participations</h1></div></div><div class="card"><p class="muted">Les participations apparaîtront ici à partir du mardi 1er décembre.</p></div>`;
+  const max = Math.min(24, t), d = pjour && pjour <= max ? pjour : max, j = D.jours[d - 1];
+  const ins = actifs().filter(s => s.statut === "actif").length;
+  return `<div class="head"><div><h1>Participations</h1><p>Une seule tentative par salarié et par jour.</p></div>
+    <label class="field" style="margin:0;min-width:240px"><span>Jour</span><select class="in" id="pSel">${Array.from({ length: max }, (_, i) => max - i).map(x => `<option value="${x}" ${x === d ? "selected" : ""}>Jour ${x} · ${esc(nomJeu(D.jours[x - 1].jeu))}</option>`).join("")}</select></label></div>
+  <div class="grid g3" style="margin-bottom:18px">
+    <div class="card stat" style="margin:0"><b>${j.joueurs}</b><span>joueurs sur ${pl(ins, "salarié connecté", "salariés connectés")}${ins ? ` (${Math.round(j.joueurs / ins * 100)} %)` : ""}</span></div>
+    <div class="card stat" style="margin:0"><b>${j.qualifies}</b><span>${j.avec_tirage ? "qualifiés" : "ont atteint l’objectif"} · objectif : ${esc(j.objectif)}</span></div>
+    <div class="card stat" style="margin:0"><b>${j.tirage ? j.tirage.gagnants.length : "—"}</b><span>${!j.avec_tirage ? "pas de tirage ce jour : jeu pour le plaisir" : j.tirage ? "gagnants tirés" : "tirage pas encore effectué"}</span></div></div>
+  <div class="spread" style="margin-bottom:10px"><h2>Résultats du jour ${d}</h2><button class="btn sm" id="csv">Exporter en CSV</button></div>
+  <div class="tbl-wrap"><table><thead><tr><th>Rang</th><th>Joueur</th><th>E-mail</th><th class="num">Résultat</th><th>Heure</th><th>Statut</th></tr></thead><tbody id="pBody"><tr><td colspan="6" class="muted">Chargement…</td></tr></tbody></table></div>
+  <p class="small muted" style="margin-top:8px">« Signalée » : le joueur a quitté la page pendant la partie, ou la durée de la partie était anormale.</p>`;
+}
+async function aParts(m){
+  const sel = $("#pSel"); if (!sel) return;
+  const d = +sel.value, j = D.jours[d - 1];
+  sel.onchange = () => { pjour = +sel.value; rendre(); };
+  let lignes = [];
+  try { lignes = await rpc("admin_participations", { p_token: token, p_jour: d }); } catch { $("#pBody").innerHTML = `<tr><td colspan="6" class="muted">Impossible de charger les participations.</td></tr>`; return; }
+  if (!$("#pBody")) return;
+  const statut = x => x.gagnant ? '<span class="tag ok">Gagnant</span>'
+    : !x.termine ? '<span class="tag bad">Interrompue</span>'
+    : x.suspect ? '<span class="tag bad">Non validée</span>'
+    : x.ok ? `<span class="tag warn">${j.avec_tirage ? "Qualifié" : "Objectif atteint"}</span>` : '<span class="tag neutral">Non qualifié</span>';
+  $("#pBody").innerHTML = lignes.map((x, i) => `<tr><td class="num">${i + 1}</td><td>${av(x.avatar, x.nom)}${esc(x.nom)}</td><td class="small muted">${esc(x.email)}</td>
+    <td class="num">${esc(x.stat || "")}${x.stat ? "<br>" : ""}<span class="small muted">${x.pts} pts</span></td><td>${esc(x.heure)}</td>
+    <td>${statut(x)}${x.sorties || x.suspect ? ' <span class="tag bad">Signalée</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">Personne n’a joué ce jour-là.</td></tr>`;
+  $("#csv").onclick = () => {
+    const q = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const csv = ["Rang;Joueur;E-mail;Résultat;Points;Heure;Qualifié;Gagnant;Sorties de page"].concat(lignes.map((x, i) => [i + 1, x.nom, x.email, x.stat, x.pts, x.heure, x.ok ? "oui" : "non", x.gagnant ? "oui" : "non", x.sorties].map(q).join(";"))).join("\r\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = `participations-jour-${d}.csv`; document.body.appendChild(a); a.click(); a.remove();
+  };
+}
+
+/* ====================== Lots ====================== */
+function vLots(){
+  const bl = besoinLots(), parJour = D.cse.mode_lots === "par_jour";
+  const optJ = sel => `<option value="">Sans jour</option>` + Array.from({ length: 24 }, (_, i) => `<option value="${i + 1}" ${sel === i + 1 ? "selected" : ""}>Jour ${i + 1}</option>`).join("");
+  return `<div class="head"><div><h1>Lots</h1><p>Les salariés voient la liste ; les lots gagnés y sont grisés.</p></div></div>
+  <div class="card framed"><h2>Bilan</h2>
+    ${bl.restants ? `<p><b>${bl.libres}</b> lots disponibles pour <b>${bl.besoin}</b> gagnant${bl.besoin > 1 ? "s" : ""} à venir (${pl(bl.restants, "jour")} avec tirage${parJour ? "" : ` × ${pl(D.cse.nb_gagnants, "gagnant")}`}).</p>
+    <p style="margin-top:8px">${bl.manque ? `<span class="tag bad">Il manque ${pl(bl.manque, "lot")}</span>${parJour ? ` <span class="small muted">jours ${bl.joursSans.join(", ")}</span>` : ""}` : '<span class="tag ok">Assez de lots</span>'}</p>` : "<p>Aucun tirage à venir : pas besoin de lots supplémentaires.</p>"}
+    <p class="small muted" style="margin-top:8px">Les jours avec tirage et le nombre de gagnants se règlent dans <button class="btn ghost sm" data-a="draws" style="padding:0;min-height:0">Tirages</button>. S’il n’y a plus de lot au moment d’un tirage, il n’y a pas de gagnant ce jour-là.</p></div>
+  <div class="card"><h2>Attribution</h2>
+    <label class="radio"><input type="radio" name="mode" value="hasard" ${parJour ? "" : "checked"}><span><b>Au hasard</b><span class="small muted">Chaque gagnant reçoit un lot tiré au hasard parmi les lots restants.</span></span></label>
+    <label class="radio"><input type="radio" name="mode" value="par_jour" ${parJour ? "checked" : ""}><span><b>Un lot fixé par jour</b><span class="small muted">Vous choisissez quel lot est mis en jeu chaque jour.</span></span></label></div>
+  <div class="card"><h2>Ajouter des lots</h2>
+    <label class="field"><span>Un lot par ligne</span><textarea id="newLots" placeholder="Coffret de chocolats&#10;Carte cadeau 30 €"></textarea></label>
+    <button class="btn primary" id="addLots">Ajouter</button></div>
+  <div class="tbl-wrap"><table><thead><tr><th class="num">N°</th><th>Lot</th>${parJour ? "<th>Jour</th>" : ""}<th>Statut</th><th></th></tr></thead><tbody>
+  ${D.lots.map((l, i) => `<tr class="${l.gagnant ? "won" : ""}"><td class="num">${i + 1}</td>
+    <td>${l.gagnant ? esc(l.libelle) : `<input type="text" value="${esc(l.libelle)}" data-lib="${l.id}" aria-label="Lot ${i + 1}">`}</td>
+    ${parJour ? `<td>${l.gagnant ? (l.jour ? `Jour ${l.jour}` : "—") : `<select class="in" data-jr="${l.id}" aria-label="Jour du lot ${i + 1}">${optJ(l.jour)}</select>`}</td>` : ""}
+    <td>${l.gagnant ? `<span class="tag neutral">Gagné le jour ${l.gagne_jour}</span> <span class="small">par ${esc(l.gagnant)}</span>` : '<span class="tag ok">Disponible</span>'}</td>
+    <td>${l.gagnant ? "" : `<button class="btn sm" data-del="${l.id}">Retirer</button>`}</td></tr>`).join("") || `<tr><td colspan="${parJour ? 5 : 4}" class="muted">Aucun lot pour l’instant. Ajoutez-en un par ligne ci-dessus.</td></tr>`}
+  </tbody></table></div>`;
+}
+function aLots(m){
+  m.querySelectorAll("button[data-a]").forEach(b => b.onclick = () => allerA(b.dataset.a));
+  m.querySelectorAll("input[name=mode]").forEach(r => r.onchange = () => api("admin_maj_cse", { p_champs: { mode_lots: r.value } }, "Mode d’attribution enregistré."));
+  $("#addLots").onclick = () => {
+    const libs = $("#newLots").value.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (!libs.length){ toast("Écrivez au moins un lot."); return; }
+    api("admin_ajouter_lots", { p_libelles: libs }, r => `${pl(r.ajoutes, "lot ajouté", "lots ajoutés")}.`);
+  };
+  const lot = id => D.lots.find(l => l.id === id);
+  m.querySelectorAll("input[data-lib]").forEach(inp => inp.onchange = () => { const l = lot(inp.dataset.lib); api("admin_lot", { p_id: l.id, p_libelle: inp.value, p_ordre: l.ordre, p_jour: l.jour, p_supprimer: false }, "Lot modifié."); });
+  m.querySelectorAll("select[data-jr]").forEach(s => s.onchange = () => { const l = lot(s.dataset.jr); api("admin_lot", { p_id: l.id, p_libelle: l.libelle, p_ordre: l.ordre, p_jour: s.value ? +s.value : null, p_supprimer: false }, "Jour du lot enregistré."); });
+  m.querySelectorAll("button[data-del]").forEach(b => b.onclick = async () => { const l = lot(b.dataset.del); if (await confirmer("Retirer ce lot", `« ${esc(l.libelle)} » sera supprimé de la liste.`, "Retirer")) api("admin_lot", { p_id: l.id, p_libelle: null, p_ordre: null, p_jour: null, p_supprimer: true }, "Lot retiré."); });
+}
+
+/* ====================== Salariés ====================== */
+/* Une ligne par personne : e-mail, puis prénom et nom s’ils sont fournis. Sans prénom, on le déduit de l’adresse (julie.roux@… → Julie Roux). */
+const majuscule = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+function lireLignes(txt){
+  const vus = new Set(), ok = [], invalides = [], doublons = [];
+  txt.split(/\r?\n/).map(l => l.trim()).filter(Boolean).forEach(l => {
+    const cols = l.split(/\t|;|,/).map(c => c.trim().replace(/^"|"$/g, "")).filter(Boolean);
+    const email = (cols.find(c => c.includes("@")) || "").toLowerCase();
+    if (!email){ if (!/mail/i.test(l)) invalides.push(l); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ invalides.push(email); return; }
+    if (vus.has(email)){ doublons.push(email); return; }
+    vus.add(email);
+    let [prenom = "", ...reste] = cols.filter(c => !c.includes("@")); let nom = reste.join(" ");
+    if (!prenom){ const p = email.split("@")[0].split(/[._-]+/).filter(Boolean); prenom = majuscule(p[0] || ""); nom = p.slice(1).map(majuscule).join(" "); }
+    ok.push({ email, prenom, nom });
+  });
+  return { ok, invalides, doublons };
+}
+function vEmps(){
+  const tous = D.salaries, act = actifs(), co = act.filter(s => s.statut === "actif").length, f = S.empFiltre.toLowerCase();
+  const liste = tous.filter(s => (S.empVue === "retires" ? s.statut === "retire" : s.statut !== "retire") && (!f || `${s.email} ${s.prenom} ${s.nom}`.toLowerCase().includes(f)));
+  const tag = s => ({ actif: '<span class="tag ok">Code choisi</span>', jamais: '<span class="tag neutral">Pas encore connecté</span>', bloque: '<span class="tag bad">Bloqué : trop de codes faux</span>', retire: `<span class="tag neutral">Retiré le ${esc(s.retire_le)}</span>` })[s.statut];
+  return `<div class="head"><div><h1>Salariés</h1><p>Seules les adresses de cette liste peuvent se connecter au calendrier, avec un code personnel à 4 chiffres choisi à la première connexion. Adresses professionnelles ou personnelles : aucun e-mail n’est envoyé.</p></div></div>
+  <div class="grid g3" style="margin-bottom:18px">
+    <div class="card stat" style="margin:0"><b>${act.length}</b><span>adresses autorisées</span></div>
+    <div class="card stat" style="margin:0"><b>${co}</b><span>salariés déjà connectés (code choisi)</span></div>
+    <div class="card stat" style="margin:0"><b>${act.length - co}</b><span>pas encore connectés</span></div></div>
+  <div class="card"><h2>Ajouter des adresses</h2>
+    <label class="field"><span>Collez la liste</span><small>Une personne par ligne : e-mail, prénom, nom (copiés depuis Excel, ou séparés par des virgules ou des points-virgules). Sans prénom, il est déduit de l’adresse : julie.roux@… devient Julie Roux. Le nom affiché aux autres joueurs est le prénom suivi de l’initiale du nom.</small>
+    <textarea id="newEmails" placeholder="julie.roux@exemple.fr	Julie	Roux"></textarea></label>
+    <div class="row"><button class="btn primary" id="addEmails">Ajouter</button>
+      <label class="btn" style="display:inline-flex;align-items:center;position:relative">Importer un fichier CSV<input type="file" id="csvFile" accept=".csv,.txt" style="position:absolute;opacity:0;width:1px;height:1px"></label></div>
+    <div id="importResult" class="small" style="margin-top:10px"></div></div>
+  <div class="spread" style="margin-bottom:10px">
+    <div class="seg" role="group" aria-label="Afficher" style="border-color:var(--line)">
+      <button data-vue="actifs" aria-pressed="${S.empVue === "actifs"}" style="color:var(--ink)${S.empVue === "actifs" ? ";background:var(--ink);color:var(--paper)" : ""}">Autorisés</button>
+      <button data-vue="retires" aria-pressed="${S.empVue === "retires"}" style="color:var(--ink)${S.empVue === "retires" ? ";background:var(--ink);color:var(--paper)" : ""}">Retirés (${tous.length - act.length})</button></div>
+    <input type="search" id="empSearch" placeholder="Rechercher un nom ou une adresse" value="${esc(S.empFiltre)}" style="max-width:320px" aria-label="Rechercher un salarié"></div>
+  <div class="tbl-wrap"><table><thead><tr><th>E-mail</th><th>Nom</th><th>Statut</th><th class="num">Jours joués</th><th></th></tr></thead><tbody>
+  ${liste.slice(0, 200).map(s => `<tr><td>${esc(s.email)}${s.admin ? ' <span class="tag warn">Admin</span>' : ""}</td><td>${s.avatar ? av(s.avatar, s.prenom) : ""}${esc(s.prenom)} ${esc(s.nom)}</td><td>${tag(s)}</td><td class="num">${s.jours_joues}</td>
+    <td>${s.protege ? '<span class="small muted">Compte de démo</span>' : s.statut === "retire" ? `<button class="btn sm" data-act="reintegrer" data-id="${s.id}">Réautoriser</button>`
+      : `<span class="row" style="flex-wrap:nowrap">${s.statut === "actif" || s.statut === "bloque" ? `<button class="btn sm" data-act="reinitialiser" data-id="${s.id}">Réinitialiser le code</button>` : ""}${s.moi ? "" : `<button class="btn sm" data-act="retirer" data-id="${s.id}">Retirer</button>`}</span>`}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">Aucune adresse ne correspond.</td></tr>`}
+  </tbody></table></div>${liste.length > 200 ? `<p class="small muted" style="margin-top:8px">200 premières adresses affichées sur ${liste.length}. Affinez la recherche.</p>` : ""}`;
+}
+function aEmps(m){
+  const importer = async txt => {
+    const r = lireLignes(txt);
+    const det = [r.invalides.length ? `${pl(r.invalides.length, "ligne invalide ignorée", "lignes invalides ignorées")} : ${esc(r.invalides.slice(0, 5).join(", "))}${r.invalides.length > 5 ? "…" : ""}` : "", r.doublons.length ? `${pl(r.doublons.length, "doublon ignoré", "doublons ignorés")}` : ""].filter(Boolean).join(" · ");
+    if (!r.ok.length){ $("#importResult").innerHTML = `<span class="tag bad">Aucune adresse valide</span> ${det}`; return; }
+    const res = await api("admin_ajouter_salaries", { p_lignes: r.ok }, x => `${pl(x.ajoutes, "adresse ajoutée", "adresses ajoutées")}${x.mis_a_jour ? `, ${pl(x.mis_a_jour, "déjà présente mise à jour", "déjà présentes mises à jour")}` : ""}.`);
+    if (res && det) setTimeout(() => { const el = $("#importResult"); if (el) el.innerHTML = `<span class="tag warn">À vérifier</span> ${det}`; }, 50);
+  };
+  $("#addEmails").onclick = () => importer($("#newEmails").value);
+  $("#csvFile").onchange = e => { const f = e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => importer(String(rd.result)); rd.readAsText(f); };
+  m.querySelectorAll("button[data-vue]").forEach(b => b.onclick = () => { S.empVue = b.dataset.vue; rendre(); });
+  const sr = $("#empSearch"); sr.oninput = () => { S.empFiltre = sr.value; const pos = sr.selectionStart; rendre(); const n = $("#empSearch"); n.focus(); n.setSelectionRange(pos, pos); };
+  m.querySelectorAll("button[data-act]").forEach(b => b.onclick = async () => {
+    const s = D.salaries.find(x => x.id === b.dataset.id), a = b.dataset.act, nom = `${esc(s.prenom)} ${esc(s.nom)}`;
+    if (a === "retirer" && !await confirmer("Retirer l’accès", `${nom} ne pourra plus se connecter ni participer aux tirages à venir. Son historique est conservé.`, "Retirer")) return;
+    if (a === "reinitialiser" && !await confirmer("Réinitialiser le code", `${nom} choisira un nouveau code à 4 chiffres à sa prochaine connexion.`, "Réinitialiser")) return;
+    api("admin_salarie", { p_id: s.id, p_action: a }, { retirer: "Accès retiré.", reinitialiser: "Code réinitialisé.", reintegrer: "Accès rétabli." }[a]);
+  });
+}
+
+/* ====================== Identité ====================== */
+function vIdent(){
+  return `<div class="head"><div><h1>Identité du calendrier</h1><p>Ce que les salariés voient en ouvrant le calendrier.${D.cse.demo ? " Dans la démo, le nom et le logo sont verrouillés." : ""}</p></div></div>
+  <div class="grid g2">
+    <div class="card">
+      <label class="field"><span>Nom affiché</span><input type="text" id="idNom" value="${esc(D.cse.nom)}"></label>
+      <div class="field"><span>Logo du CSE</span><div class="imgbox"><div class="thumb">${D.cse.logo ? `<img src="${esc(D.cse.logo)}" alt="Logo actuel">` : "Aucun logo"}</div>
+        <div class="stack" style="gap:6px"><label class="btn sm" style="display:inline-flex;align-items:center;width:max-content;position:relative">Choisir une image<input type="file" accept="image/*" id="idLogo" style="position:absolute;opacity:0;width:1px;height:1px"></label><small class="muted">Image carrée de préférence (PNG, JPG ou SVG). Elle est réduite automatiquement.</small>${D.cse.logo ? `<button class="btn ghost sm" id="idSansLogo" style="width:max-content">Retirer le logo</button>` : ""}</div></div></div>
+      <button class="btn primary" id="idOk">Enregistrer le nom</button></div>
+    <div class="card"><h2>Aperçu</h2>
+      <div class="preview"><div class="pv-head">${mono()}<b style="font-family:var(--f-title);font-size:1.15rem">${esc(D.cse.nom)}</b></div>
+        <div class="pv-grid" aria-hidden="true">${[7, 3, 18, 11, 24, 1, 15, 9, 21, 5, 13, 20].map(n => `<div>${n}</div>`).join("")}</div></div>
+      <p class="small muted" style="margin-top:10px">Aperçu simplifié : le logo remplace les initiales en haut du calendrier.</p></div></div>`;
+}
+function aIdent(){
+  $("#idOk").onclick = () => api("admin_maj_cse", { p_champs: { nom: $("#idNom").value } }, "Nom enregistré.");
+  const sl = $("#idSansLogo"); if (sl) sl.onclick = () => api("admin_maj_cse", { p_champs: { logo: null } }, "Logo retiré.");
+  $("#idLogo").onchange = e => {
+    const f = e.target.files[0]; if (!f) return;
+    const img = new Image(), url = URL.createObjectURL(f);
+    img.onload = () => {
+      const t = 256, c = document.createElement("canvas"); c.width = c.height = t;
+      const k = Math.min(t / img.width, t / img.height), w = img.width * k, h = img.height * k;
+      c.getContext("2d").drawImage(img, (t - w) / 2, (t - h) / 2, w, h); URL.revokeObjectURL(url);
+      api("admin_maj_cse", { p_champs: { logo: c.toDataURL("image/png") } }, "Logo enregistré.");
+    };
+    img.onerror = () => toast("Image illisible. Essayez un fichier PNG ou JPG.");
+    img.src = url;
+  };
+}
+
+/* ====================== Outils de démo (CSE de démonstration uniquement) ====================== */
+function vDemo(){
+  const t = D.cse.jour;
+  return `<div class="head"><div><h1>Outils de démo</h1><p>Visible uniquement dans le CSE de démonstration. La démo est remise à zéro automatiquement chaque nuit à 4h.</p></div></div>
+  <div class="card framed"><h2>Jour simulé</h2>
+    <p class="muted small" style="margin:6px 0 12px">Le calendrier, la console et les tirages se comportent comme si on était ce jour-là. Les tirages des jours passés se font automatiquement dans les 5 minutes.</p>
+    <div class="row"><select class="in" id="dJour" style="max-width:240px" aria-label="Jour simulé">${Array.from({ length: 24 }, (_, i) => `<option value="${i + 1}" ${t === i + 1 ? "selected" : ""}>${esc(dateCourte(i + 1))}</option>`).join("")}</select>
+    <button class="btn primary" id="dJourOk">Appliquer</button></div></div>
+  <div class="card"><h2>Tirage de la case du jour</h2>
+    <p class="muted small" style="margin:6px 0 12px">Lance tout de suite le tirage de la case ${t >= 1 && t <= 24 ? t : "du jour"}, parmi ceux qui l’ont réussie, sans attendre minuit. Relancer refait le tirage.</p>
+    <button class="btn primary" id="dTirer">Lancer le tirage maintenant</button></div>
+  <div class="card"><h2>Remise à zéro</h2>
+    <p class="muted small" style="margin:6px 0 12px">Remet la démo dans son état de départ : 20 participants fictifs, jours 1 à 4 joués et tirés, lots d’exemple, jour simulé au 5 décembre.</p>
+    <button class="btn" id="dReset">Réinitialiser la démo</button></div>`;
+}
+function aDemo(){
+  $("#dJourOk").onclick = () => api("admin_demo_jour", { p_jour: +$("#dJour").value }, "Jour simulé enregistré.");
+  $("#dTirer").onclick = () => api("admin_demo_tirer", {}, r => `Tirage de la case ${r.jour} effectué.`);
+  $("#dReset").onclick = async () => { if (await confirmer("Réinitialiser la démo", "Toutes les modifications faites dans la démo seront effacées.", "Réinitialiser")) api("admin_demo_reinitialiser", {}, "Démo remise à zéro."); };
+}
+
+/* ====================== Administrateurs ====================== */
+function vAdmins(){
+  const ad = D.salaries.filter(s => s.admin && s.statut !== "retire");
+  return `<div class="head"><div><h1>Administrateurs</h1><p>Tous les admins ont les mêmes droits. Ils se connectent comme les salariés, avec leur e-mail et un code à 4 chiffres choisi à la première connexion. Aucun e-mail n’est envoyé : prévenez-les vous-même.</p></div></div>
+  <div class="tbl-wrap" style="margin-bottom:18px"><table><thead><tr><th>Nom</th><th>E-mail</th><th>Statut</th><th></th></tr></thead><tbody>
+  ${ad.map(a => `<tr><td><b>${esc(a.prenom)} ${esc(a.nom)}</b>${a.moi ? ' <span class="tag warn">Vous</span>' : ""}</td><td>${esc(a.email)}</td>
+    <td>${a.statut === "jamais" ? '<span class="tag warn">Première connexion en attente</span>' : a.statut === "bloque" ? '<span class="tag bad">Bloqué</span>' : '<span class="tag ok">Actif</span>'}</td>
+    <td class="row">${a.protege ? '<span class="small muted">Compte de démo</span>' : a.statut !== "jamais" ? `<button class="btn sm" data-reset="${a.id}">Réinitialiser le code</button>` : ""}${a.moi || a.protege ? "" : `<button class="btn sm" data-rm="${a.id}">Retirer l’accès admin</button>`}</td></tr>`).join("")}
+  </tbody></table></div>
+  <div class="card"><h2>Ajouter un admin</h2>
+    <div class="grid g3"><label class="field"><span>Prénom</span><input type="text" id="aPre"></label><label class="field"><span>Nom</span><input type="text" id="aNom"></label>
+    <label class="field"><span>E-mail (identifiant de connexion)</span><input type="email" id="aMail" placeholder="sophie.martin@exemple.fr"></label></div>
+    <button class="btn primary" id="aOk">Donner l’accès</button>
+    <p class="small muted" style="margin-top:8px">Si l’adresse est déjà dans la liste des salariés, la personne garde son compte et reçoit en plus l’accès à cette console.</p></div>`;
+}
+function aAdmins(m){
+  $("#aOk").onclick = () => api("admin_ajouter_admin", { p_email: $("#aMail").value, p_prenom: $("#aPre").value, p_nom: $("#aNom").value }, "Accès administrateur donné.");
+  m.querySelectorAll("button[data-reset]").forEach(b => b.onclick = async () => { if (await confirmer("Réinitialiser le code", "Cet admin choisira un nouveau code à sa prochaine connexion.", "Réinitialiser")) api("admin_salarie", { p_id: b.dataset.reset, p_action: "reinitialiser" }, "Code réinitialisé."); });
+  m.querySelectorAll("button[data-rm]").forEach(b => b.onclick = async () => { if (await confirmer("Retirer l’accès admin", "La personne reste dans la liste des salariés mais n’a plus accès à cette console.", "Retirer")) api("admin_salarie", { p_id: b.dataset.rm, p_action: "admin_non" }, "Accès admin retiré."); });
+}
+
+dlg.addEventListener("click", e => { if (e.target === dlg) dlg.close(); });
+demarrer();
+})();
+</script>
+</body>
+</html>
